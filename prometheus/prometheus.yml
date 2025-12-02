@@ -1,0 +1,102 @@
+global:
+  scrape_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["prometheus:9090"]
+  - job_name: Monitored Server  #Nama Grup
+    static_configs:
+      - targets: ["192.168.1.37:9100", "192.168.1.38:9100"]  #Alamat IP server yang dimonito
+####
+  - job_name: 'uptime-kuma'
+    scrape_interval: 30s
+    scheme: http
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['uptime-kuma:3001']
+    basic_auth:
+      username: seadmin  #
+      password: seadmin1  # 
+
+
+  - job_name: 'snmp'
+    static_configs:
+      - targets:
+        - 192.168.20.130  # IP SNMP device.
+        #- switch.local # SNMP device.
+        #- tcp://192.168.1.3:1161  # SNMP device using TCP transport and custom port.
+    metrics_path: /snmp
+    params:
+      auth: [public_v2]
+      module: [if_mib]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: snmp_exporter:9116  # The SNMP exporter's real hostname:port.
+
+  # Global exporter-level metrics
+  - job_name: 'snmp_exporter'
+    static_configs:
+      - targets: ['snmp_exporter:9116']
+  
+  - job_name: 'speedtest_exporter'
+    scrape_interval: 1h
+    scrape_timeout: 1m
+    static_configs:
+      - targets: ['speedtest-exporter:9798']
+  
+  - job_name: "blackbox"
+    metrics_path: /probe
+    params:
+       module: [http_2xx]
+    static_configs:
+      - targets:
+          - "https://seamolec.org/"
+          - "https://maganghub.kemnaker.go.id"
+          - "https://siapkerja.kemnaker.go.id/app/home"
+        labels:
+          vlan: "internet"
+      # Contoh gateway IP per VLAN — ganti sesuai lingkungan Anda
+      - targets:
+          - "192.168.10.1"
+        labels:
+          vlan: "vlan10"
+      - targets:
+          - "192.168.20.1"
+        labels:
+          vlan: "vlan20"
+        # tambahkan di sini jika mau monitoring API:
+        # - https://example.com/api/v1/status
+        # - http://intranet.local
+
+    relabel_configs:
+      # Target dimasukkan ke parameter ?target=
+      - source_labels: [__address__]
+        target_label: __param_target
+  
+      # Buat instance = URL agar dashboard terpisah
+      - source_labels: [__param_target]
+        target_label: instance
+
+      # Hit ke blackbox exporter sebenarnya
+      - target_label: __address__
+        replacement: "192.168.1.36:9115"
+ 
+  - job_name: cadvisor
+    scrape_interval: 5s
+    static_configs:
+      - targets:
+        - cadvisor:8080
+

@@ -1,0 +1,123 @@
+services:
+  grafana:
+    image: "grafana/grafana:11.3.0-security-01-ubuntu"
+    container_name: "grafana"
+    restart: "unless-stopped"
+    ports:
+      - "3000:3000"
+    volumes:
+      - "grafana:/var/lib/grafana"
+      - "$PWD/grafana/grafana.ini:/etc/grafana/grafana.ini"
+    depends_on:
+      - cadvisor
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    restart: unless-stopped
+    depends_on:
+    - redis
+  
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+    - 6379:6379
+
+  prometheus:
+    image: "prom/prometheus:v2.55.0"
+    container_name: "prometheus"
+    restart: "unless-stopped"
+    ports:
+      - "9090:9090"
+    volumes:
+      - "$PWD/prometheus:/etc/prometheus"
+      - "prometheus:/prometheus"
+
+  blackbox_exporter:
+     image: "quay.io/prometheus/blackbox-exporter:latest"
+     container_name: "blackbox-exporter"
+     restart: "unless-stopped"
+     ports:
+      - "9115:9115"
+     volumes:
+      - "./blackbox:/config"
+     command:
+      - "--config.file=/config/blackbox.yml"
+
+  alertmanager:
+    image: "prom/alertmanager:v0.27.0"
+    container_name: "alertmanager"
+    restart: "unless-stopped"
+    ports:
+      - "9093:9093"
+    volumes:
+      - "$PWD/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml"
+      - "alertmanager:/alertmanager"
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1.23.13
+    container_name: uptime-kuma
+    restart: always
+    ports:
+      - '3001:3001'
+    volumes:
+      - 'uptime-kuma-storage:/app/data'
+
+  loki:
+    image: grafana/loki
+    container_name: loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./loki:/etc/loki
+
+  promtail:
+    image: grafana/promtail
+    container_name: promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    volumes:
+      - ./promtail:/etc/promtail
+      - /var/log:/var/log
+  incident-webhook:
+    build: ./incident-webhook
+    container_name: incident-webhook
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+    environment:
+      - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/1443805759514083461/ihM2neSs6gYk97Ni6AhvVBtG8Mw7HkQs9QVob5q9h_fxNAyz2FJJa3RPpRh_ed-4ST70
+    volumes:
+      - ./var/log:/var/log
+  snmp_exporter:
+    image: prom/snmp-exporter
+    container_name: snmp-exporter
+    restart: unless-stopped
+#    volumes:
+ #     - ./snmp:/etc/snmp_exporter
+      #- ./snmp/snmp.yml:/etc/snmp_exporter/snmp.yml
+
+  speedtest-exporter:
+    image: miguelndecarvalho/speedtest-exporter
+    container_name: speedtest-exporter
+    ports:
+      - '9798:9798'
+    restart: unless-stopped
+
+volumes:
+  grafana: {}
+  prometheus: {}
+  alertmanager: {}
+  uptime-kuma-storage: {}
+

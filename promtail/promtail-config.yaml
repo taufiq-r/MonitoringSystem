@@ -12,19 +12,28 @@ scrape_configs:
 - job_name: system
   static_configs:
   - targets:
-      - localhost
+      - debx240
     labels:
       job: varlogs
-      __path__: /var/log/*log
+      __path__: /var/log/*.log
 
 
 ##### systemd #####
 
-- job_name: journal
-  static_configs:
-  - targets: 
-      - systemd
+- job_name: systemd-journal-log
+  journal:
+    json: false
+    max_age: 12h
     labels:
-      path: /var/log/journal
-      max_age: 24h
-      job: systemd-journal
+     job: systemd-journal
+     host: debx240
+    path: /var/log/journal
+
+
+  relabel_configs:
+   - source_labels: ['__journal__systemd_unit']
+     target_label: 'unit'
+   - source_labels: ['__journal__hostname']
+     target_label: 'hostname'
+   - source_labels: ['__journal_priority_keyword']
+     target_label: 'level'

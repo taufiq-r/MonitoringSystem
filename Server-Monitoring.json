@@ -87,6 +87,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": null,
   "links": [],
   "panels": [
     {
@@ -99,7 +100,7 @@
       },
       "id": 100,
       "panels": [],
-      "repeat": "logserver",
+      "repeat": "node",
       "title": "Server Resources & Log Monitoring",
       "type": "row"
     },
@@ -621,7 +622,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(time() - node_boot_time_seconds) by (instance, job, server_role, environment, server)",
+          "editorMode": "code",
+          "expr": "sum(time() - node_boot_time_seconds{instance=\"$node\"}) by (instance)",
           "format": "table",
           "instant": true,
           "refId": "D"
@@ -631,7 +633,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(node_memory_MemTotal_bytes) by (instance, job, server_role, environment, server)",
+          "editorMode": "code",
+          "expr": "sum(node_memory_MemTotal_bytes{instance=\"$node\"}) by (instance)\r\n",
           "format": "table",
           "instant": true,
           "refId": "B"
@@ -641,7 +644,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "count(node_cpu_seconds_total{mode=\"system\"}) by (instance, job, server_role, environment, server)",
+          "editorMode": "code",
+          "expr": "count(node_cpu_seconds_total{mode=\"system\", instance=\"$node\"}) by (instance)",
           "format": "table",
           "instant": true,
           "refId": "C"
@@ -651,7 +655,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "max(node_load5) by (instance, job, server_role, environment, server)",
+          "editorMode": "code",
+          "expr": "max(node_load5{instance=\"$node\"}) by (instance)",
           "format": "table",
           "instant": true,
           "refId": "L"
@@ -661,7 +666,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "(1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (instance, job, server_role, environment, server)) * 100",
+          "editorMode": "code",
+          "expr": "(1 - avg(rate(node_cpu_seconds_total{mode=\"idle\", instance=\"$node\"}[5m])) by (instance)) * 100",
           "format": "table",
           "instant": true,
           "refId": "F"
@@ -671,7 +677,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "(1 - (sum(node_memory_MemAvailable_bytes) by (instance, job, server_role, environment, server) / sum(node_memory_MemTotal_bytes) by (instance, job, server_role, environment, server))) * 100",
+          "editorMode": "code",
+          "expr": "(1 - (sum(node_memory_MemAvailable_bytes{instance=\"$node\"}) by (instance) / sum(node_memory_MemTotal_bytes{instance=\"$node\"}) by (instance))) * 100",
           "format": "table",
           "instant": true,
           "refId": "G"
@@ -681,7 +688,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "max((node_filesystem_size_bytes{mountpoint=\"/\"} - node_filesystem_free_bytes{mountpoint=\"/\"}) * 100 / node_filesystem_size_bytes{mountpoint=\"/\"}) by (instance, job, server_role, environment, server)",
+          "editorMode": "code",
+          "expr": "max((node_filesystem_size_bytes{mountpoint=\"/\", instance=\"$node\"} - node_filesystem_free_bytes{mountpoint=\"/\", instance=\"$node\"}) * 100 / node_filesystem_size_bytes{mountpoint=\"/\", instance=\"$node\"}) by (instance)",
           "format": "table",
           "instant": true,
           "refId": "E"
@@ -691,7 +699,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "max(rate(node_disk_read_bytes_total[5m])) by (instance, job, server_role, environment, server)",
+          "editorMode": "code",
+          "expr": "max(rate(node_disk_read_bytes_total{instance=\"$node\"}[5m])) by (instance)",
           "format": "table",
           "instant": true,
           "refId": "H"
@@ -701,7 +710,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "max(rate(node_disk_written_bytes_total[5m])) by (instance, job, server_role, environment, server)",
+          "editorMode": "code",
+          "expr": "max(rate(node_disk_written_bytes_total{instance=\"$node\"}[5m])) by (instance)",
           "format": "table",
           "instant": true,
           "refId": "I"
@@ -711,7 +721,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "max(rate(node_network_receive_bytes_total{device!~\"lo|docker.*|veth.*\"}[5m]) * 8) by (instance, job, server_role, environment, server)",
+          "editorMode": "code",
+          "expr": "max(rate(node_network_receive_bytes_total{device!~\"lo|docker.*|veth.*\", instance=\"$node\"}[5m]) * 8) by (instance)",
           "format": "table",
           "instant": true,
           "refId": "J"
@@ -721,7 +732,8 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "max(rate(node_network_transmit_bytes_total{device!~\"lo|docker.*|veth.*\"}[5m]) * 8) by (instance, job, server_role, environment, server)",
+          "editorMode": "code",
+          "expr": "max(rate(node_network_transmit_bytes_total{device!~\"lo|docker.*|veth.*\", instance=\"$node\"}[5m]) * 8) by (instance)",
           "format": "table",
           "instant": true,
           "refId": "K"
@@ -786,12 +798,12 @@
           },
           "direction": "backward",
           "editorMode": "code",
-          "expr": "{job=\"systemd-journal\", host=~\"^$logserver$\", level=\"info\"} |= \"\"\n",
+          "expr": "{job=\"systemd-journal\", host=\"$realhost\", level=\"info\"} |= \"\"\n",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Log Node",
+      "title": "Log Node Info",
       "type": "logs"
     },
     {
@@ -828,7 +840,7 @@
           },
           "direction": "backward",
           "editorMode": "code",
-          "expr": "{job=\"systemd-journal\", host=~\"^$logserver$\", level=\"error\"} |= \"\"\n",
+          "expr": "{job=\"systemd-journal\", host=\"$realhost\", level=\"error\"} |= \"\"\n",
           "queryType": "range",
           "refId": "A"
         }
@@ -1788,40 +1800,33 @@
         },
         "refresh": 2,
         "regex": "",
+        "sort": 1,
         "type": "query"
       },
       {
         "current": {},
-        "datasource": {
-          "type": "loki",
-          "uid": "${DS_LOKI}"
-        },
-        "definition": "",
-        "name": "logserver",
+        "definition": "label_values(node_uname_info{instance=\"$node\"}, nodename)",
+        "name": "realhost",
         "options": [],
         "query": {
-          "label": "host",
-          "refId": "LokiVariableQueryEditor-VariableQuery",
-          "stream": "{job=\"systemd-journal\"}",
-          "type": 1
+          "qryType": 5,
+          "query": "label_values(node_uname_info{instance=\"$node\"}, nodename)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
         "regex": "",
-        "sort": 1,
-        "staticOptions": [],
         "type": "query"
       }
     ]
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Server-Monitoring",
-  "uid": "server-monitoring-dashboard-seamolec",
-  "version": 14,
-  "weekStart": "",
-  "id": null
+  "title": "Server-Monitoringtest",
+  "uid": "server-monitoring-dashboard-seamolectest",
+  "version": 19,
+  "weekStart": ""
 }

@@ -1,0 +1,122 @@
+version: "3.9"
+
+services:
+
+  #####################
+  # NGINX + PHP SITES #
+  #####################
+
+  nginx_site1:
+    image: nginx:latest
+    container_name: nginx-site1
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nginx-php/site1:/var/www/html
+      - ./nginx-php/site1/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php_site1
+
+  php_site1:
+    image: php:8.2-fpm
+    container_name: php-site1
+    volumes:
+      - ./nginx-php/site1:/var/www/html
+
+  nginx_site2:
+    image: nginx:latest
+    container_name: nginx-site2
+    ports:
+      - "8082:80"
+    volumes:
+      - ./nginx-php/site2:/var/www/html
+      - ./nginx-php/site2/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php_site2
+
+  php_site2:
+    image: php:8.2-fpm
+    container_name: php-site2
+    volumes:
+      - ./nginx-php/site2:/var/www/html
+  nginx_site3:
+    image: nginx:latest
+    container_name: nginx-site3
+    ports:
+      - "8083:80"
+    volumes:
+      - ./nginx-php/site3:/var/www/html
+      - ./nginx-php/site3/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php_site3
+  php_site3:
+    image: php:8.2-fpm
+    container_name: php-site3
+    volumes:
+      - ./nginx-php/site3:/var/www/html
+  nginx_site4:
+    image: nginx:latest
+    container_name: nginx-site4
+    ports:
+      - "8084:80"
+    volumes:
+      - ./nginx-php/site4:/var/www/html
+      - ./nginx-php/site4/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php_site4
+
+  php_site4:
+    image: php:8.2-fpm
+    container_name: php-site4
+    volumes:
+      - ./nginx-php/site4:/var/www/html
+
+
+
+
+  #######################
+  # APACHE + PHP SITES  #
+  #######################
+
+  apache_site1:
+    image: php:8.2-apache
+    container_name: apache-site1
+    ports:
+      - "8091:80"
+    volumes:
+      - ./apache-php/site1:/var/www/html
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html
+
+  apache_site2:
+    image: php:8.2-apache
+    container_name: apache-site2
+    ports:
+      - "8092:80"
+    volumes:
+      - ./apache-php/site2:/var/www/html
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html
+
+  apache_site3:
+    image: php:8.2-apache
+    container_name: apache-site3
+    ports:
+      - "8093:80"
+    volumes:
+      - ./apache-php/site3:/var/www/html
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html 
+
+  apache_site4:
+    image: php:8.2-apache
+    container_name: apache-site4
+    ports:
+      - "8094:80"
+    volumes:
+      - ./apache-php/site4:/var/www/html
+    environment:
+      APACHE_DOCUMENT_ROOT: /var/www/html
+networks:
+  default:
+    name: webservers-network

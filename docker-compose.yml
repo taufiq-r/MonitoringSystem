@@ -3,6 +3,12 @@ services:
     image: "grafana/grafana:latest" #11.3.0-security-01-ubuntu"
     container_name: "grafana"
     restart: "unless-stopped"
+    logging:
+      driver: loki
+      options:
+        loki-url: 'http://localhost:3100/loki/api/v1/push'
+        loki-retries: 5
+        loki-batch-size: 400
     ports:
       - "3000:3000"
     volumes:
@@ -16,12 +22,18 @@ services:
        memory: 512M
       reservations:
        memory: 256M #minimum
-
+###################################################################
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest #v0.49.1
     container_name: cadvisor
     privileged: true
     restart: always
+    logging:
+      driver: loki
+      options:
+        loki-url: 'http://localhost:3100/loki/api/v1/push'
+        loki-retries: 5
+        loki-batch-size: 400
     ports:
       - 8080:8080
     volumes:
@@ -41,12 +53,18 @@ services:
        memory: 256M
       reservations:
        memory: 128M
-
+#########################################################
   redis:
     image: redis:latest
     container_name: redis
+    logging:
+      driver: loki
+      options:
+        loki-url: 'http://localhost:3100/loki/api/v1/push'
+        loki-retries: 5
+        loki-batch-size: 400
     ports:
-    - 6379:6379
+      - 6379:6379
     deploy:
      resources:
       limits:
@@ -54,7 +72,7 @@ services:
       reservations:
        memory: 128M
 
-#prometheus#
+#########################################################
   prometheus:
     image: "prom/prometheus:latest" #v2.55.0"
     container_name: "prometheus"
@@ -77,11 +95,18 @@ services:
        memory: 2G
       reservations:
        memory: 512M
-#blackbox-exporter#
+##############################################################
   blackbox_exporter:
      image: "quay.io/prometheus/blackbox-exporter:latest"
      container_name: "blackbox-exporter"
+     privileged: true
      restart: "unless-stopped"
+     logging:
+       driver: loki
+       options:
+         loki-url: 'http://localhost:3100/loki/api/v1/push'
+         loki-retries: 5
+         loki-batch-size: 400
      cap_add:
       - NET_RAW
      ports:
@@ -96,11 +121,18 @@ services:
         memory: 128M
        reservations:
         memory: 64M
-#alertmanager#
+#################################################################
   alertmanager:
     image: "prom/alertmanager:latest" #v0.27.0"
     container_name: "alertmanager"
     restart: "unless-stopped"
+    privileged: true
+    logging:
+      driver: loki
+      options:
+        loki-url: 'http://localhost:3100/loki/api/v1/push'
+        loki-retries: 5
+        loki-batch-size: 400
     ports:
       - "9093:9093"
     volumes:
@@ -112,11 +144,17 @@ services:
        memory: 256M
       reservations:
        memory: 128M
-#Kuma#
+########################################################################
   uptime-kuma:
     image: louislam/uptime-kuma:2
     container_name: uptime-kuma
     restart: always
+    logging:
+      driver: loki
+      options:
+          loki-url: 'http://localhost:3100/loki/api/v1/push'
+          loki-retries: 5
+          loki-batch-size: 400
     ports:
       - '3001:3001'
     volumes:
@@ -127,11 +165,18 @@ services:
        memory: 512M
       reservations:
        memory: 256M
-#Loki#
+################################################################
   loki:
     image: grafana/loki:2.9.3
     container_name: loki
+    privileged: true
     restart: unless-stopped
+    logging:
+      driver: loki
+      options:
+          loki-url: 'http://localhost:3100/loki/api/v1/push'
+          loki-retries: 5
+          loki-batch-size: 400
     ports:
       - '3100:3100'
     command: -config.file=/etc/loki/loki-config.yaml
@@ -149,6 +194,12 @@ services:
     image: grafana/promtail:2.9.3
     container_name: promtail
     restart: unless-stopped
+    logging:
+      driver: loki
+      options:
+        loki-url: 'http://localhost:3100/loki/api/v1/push'
+        loki-retries: 5
+        loki-batch-size: 400
     command: -config.file=/etc/promtail/promtail-config.yaml
     volumes:
       - ./promtail:/etc/promtail
@@ -156,6 +207,8 @@ services:
       - /var/log/journal:/var/log/journal:ro
       - /run/log/journal:/run/log/journal:ro
       - /etc/machine-id:/etc/machine-id:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
     privileged: true
     user: root
     deploy:
@@ -169,6 +222,12 @@ services:
     build: ./incident-webhook
     container_name: incident-webhook
     restart: unless-stopped
+    logging:
+      driver: loki
+      options:
+        loki-url: 'http://localhost:3100/loki/api/v1/push'
+        loki-retries: 5
+        loki-batch-size: 400
     ports:
       - '5000:5000'
     environment:
@@ -183,37 +242,37 @@ services:
        memory: 128M
 
 #snmp#
-  snmp_exporter:
-    image: prom/snmp-exporter
-    container_name: snmp-exporter
-    restart: unless-stopped
+#  snmp_exporter:
+#    image: prom/snmp-exporter
+#    container_name: snmp-exporter
+#    restart: unless-stopped
 #    volumes:
  #     - ./snmp:/etc/snmp_exporter
       #- ./snmp/snmp.yml:/etc/snmp_exporter/snmp.yml
-    deploy:
-     resources:
-      limits:
-       memory: 256M
-      reservations:
-       memory: 128M
+#    deploy:
+#     resources:
+#      limits:
+#       memory: 256M
+#      reservations:
+#       memory: 128M
 
 #speedtest#
-  speedtest-exporter:
-    image: miguelndecarvalho/speedtest-exporter
-    container_name: speedtest-exporter
-    ports:
-      - '9798:9798'
-    restart: unless-stopped
-    deploy:
-     resources:
-      limits:
-       memory: 128M
-      reservations:
-       memory: 64M
+#  speedtest-exporter:
+#    image: miguelndecarvalho/speedtest-exporter
+#    container_name: speedtest-exporter
+#    ports:
+#      - '9798:9798'
+#    restart: unless-stopped
+#    deploy:
+#     resources:
+#      limits:
+#       memory: 128M
+#      reservations:
+#       memory: 64M
 volumes:
   grafana: {}
   prometheus: {}
   alertmanager: {}
   uptime-kuma-storage: {}
   loki: {}
-
+  promtail: {}

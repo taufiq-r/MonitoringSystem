@@ -3,7 +3,7 @@
 set -e
 
 echo "================================================================="
-echo "  INSTALLER Agent: Node Exporter, Prometheus,  Promtail & Loki"
+echo "  INSTALLER Agent: Node Exporter, Process Exporter Prometheus,  Promtail & Loki"
 echo "================================================================="
 sleep 1
 
@@ -60,11 +60,60 @@ EOF
   echo "Node Exporter installed & running on port 9100"
 }
 
+install_process_exporter(){
+  echo "[2/5] Installing Process Exporter...."
+  cd $INSTALL_DIR
+  
+  VERSION=0.8.3
+  FILE="process-exporter-=${VERSION}.linux-=${ARCH_DL}.tar.gz"
+  wget https://github.com/ncabatoff/process-exporter/releases/download/v${VERSION}/${FILE}
+  tar xzf ${FILE}
+  sudo mv process-exporter-${VERSION}.linux-${ARCH_DL}/process_exporter /usr/local/bin/
+  sudo chmod +x /usr/local/bin/process_exporter
+
+  cat <<EOF >/etc/process-exporter.yml
+process_names:
+  - name: "{{.Comm}}"
+    cmdline:
+      - ".+"
+  - name: "nginx"
+    cmdline:
+      - "nginx"
+  - name: "mysql"
+    cmdline:
+      - "mysqld"
+
+
+EOF
+
+  cat <<EOF >/etc/systemd/system/process_exporter.service
+[Unit]
+Description=Prometheus Process Exporter
+After=network.target
+
+[Service]
+User=root
+ExecStart=/usr/local/bin/process-exporter --config.path=/etc/process-exporter.yml
+
+[Install]
+WantedBy=multi-user.target
+
+EOF
+  
+  systemctl daemon-reload
+  systemctl enable --now process_exporter
+  systemctl status process_exporter
+  echo "Succes Create process_exporter.service"
+
+  echo "Test endpoint Process Exporter..."
+  curl http://localhost:9256/metrics
+  echo "Success install Process Exporter, run on PORT: 9256.."
+
 ###################################
 # LOKI INSTALLATION
 ###################################
 install_loki() {
-  echo "[2/4] Installing Loki..."
+  echo "[3/5] Installing Loki..."
 
   cd $INSTALL_DIR
   VERSION="3.1.1"
@@ -141,7 +190,7 @@ EOF
 # PROMTAIL INSTALLATION
 ###################################
 install_promtail() {
-  echo "[3/4] Installing Promtail..."
+  echo "[4/5] Installing Promtail..."
 
   cd $INSTALL_DIR
   VERSION="3.1.1"
@@ -204,7 +253,7 @@ EOF
 #############################
 
 install_prometheus(){
-  echo "[4/4] Installer Prometheus..."
+  echo "[5/5] Installer Prometheus..."
 
   cd $INSTALL_DIR
 
@@ -273,22 +322,24 @@ EOF
 echo ""
 echo "Pilih agent yang ingin di-install:"
 echo "1) Install Node Exporter"
-echo "2) Install Loki"
-echo "3) Install Promtail"
-echo "4) Install Prometheus"
-echo "5) Install Semua"
-echo "6) Exit"
+echo "2) Install Process Exporter"
+echo "3) Install Loki"
+echo "4) Install Promtail"
+echo "5) Install Prometheus"
+echo "6) Install Semua"
+echo "7) Exit"
 echo ""
 
-read -p "Masukkan pilihan [1-6]: " CHOICE
+read -p "Masukkan pilihan [1-7]: " CHOICE
 
 case $CHOICE in
   1) install_node_exporter ;;
-  2) install_loki ;;
-  3) install_promtail ;;
-  4) install_prometheus ;;
-  5) install_node_exporter; install_loki; install_promtail; install_prometheus ;;
-  6) exit 0 ;;
+  2) Instsall_process_exporter ;;
+  3) install_loki ;;
+  4) install_promtail ;;
+  5) install_prometheus ;;
+  6) install_node_exporter; install_process_exporter; install_loki; install_promtail; install_prometheus ;;
+  7) exit 0 ;;
   *) echo "Input tidak valid!"; exit 1 ;;
 esac
 

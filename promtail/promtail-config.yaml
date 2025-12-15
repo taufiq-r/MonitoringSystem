@@ -16,18 +16,18 @@ scrape_configs:
           - localhost
         labels:
           job: varlogs
-          host: debx240
+          host: monitoring
           __path__: /var/log/*.log
 
   # Systemd journal logs
-  - job_name: systemd-journal-log
+  - job_name: systemd-journal
     journal:
       json: false
       max_age: 12h
       path: /var/log/journal
       labels:
         job: systemd-journal
-        host: debx240
+        host: monitoring
     relabel_configs:
       - source_labels: ['__journal__systemd_unit']
         target_label: 'unit'
@@ -36,37 +36,44 @@ scrape_configs:
       - source_labels: ['__journal_priority_keyword']
         target_label: 'level'
 
-  # Docker container logs
+  # Docker container logs (json-file)
   - job_name: docker-container
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: docker-container
-          host: debx240
-          __path__: /var/lib/docker/containers/*/*.log
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+
+    relabel_configs:
+    # Ambil container name
+      - source_labels: ['__meta_docker_container_name']
+        target_label: container
+        regex: '/(.*)'
+        replacement: '$1'
+
+    # Ambil image
+      - source_labels: ['__meta_docker_container_image']
+        target_label: image
+
+    # Mapping path log container
+      - source_labels: ['__meta_docker_container_id']
+        target_label: __path__
+        replacement: /var/lib/docker/containers/$1/*-json.log
+
+      - target_label: job
+        replacement: docker-container
+
+      - target_label: host
+        replacement: monitoring
 
     pipeline_stages:
-      # Docker logs are JSON
-      - json:
-          expressions:
-            log: log
-            stream: stream
-            time: time
+      - docker: {}
 
-      # Use Docker timestamp
-      - timestamp:
-          source: time
-          format: RFC3339Nano
 
-      # Expose stdout / stderr
-      - labels:
-          stream:
 
-      # Output only message
-      - output:
-          source: log
-   #docker_sd_configs:
+
+
+
+
+      #docker_sd_configs:
       #- host: unix:///var/run/docker.sock
         #refresh_interval: 5s
     #relabel_configs:

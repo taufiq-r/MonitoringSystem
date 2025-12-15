@@ -381,7 +381,7 @@
           },
           "direction": "backward",
           "editorMode": "code",
-          "expr": "{job=\"docker-container\"} |~ \"(?i)error|fail|panic|fatal\"\n",
+          "expr": "{job=\"docker-container\"}\n",
           "queryType": "range",
           "refId": "A"
         }
@@ -1478,16 +1478,16 @@
       "pluginVersion": "12.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "editorMode": "code",
           "expr": "(\n  1 -\n  avg by (instance) (\n    rate(node_cpu_seconds_total{mode=\"idle\"}[$__rate_interval])\n  )\n) * 100\n",
           "hide": true,
           "legendFormat": "{{label_name}}",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "refId": "A"
         },
         {
           "datasource": {
@@ -1590,15 +1590,15 @@
       "pluginVersion": "12.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "editorMode": "code",
           "expr": "topk(\n  10,\n  (\n    sum by (groupname, ip) (\n      label_replace(\n        rate(namedprocess_namegroup_cpu_seconds_total[$__rate_interval]),\n        \"ip\", \"$1\", \"instance\", \"(.*):.*\"\n      )\n    )\n    /\n    on(ip)\n    group_left(server)\n    count by (ip, server) (\n      label_replace(\n        node_cpu_seconds_total{mode=\"idle\"},\n        \"ip\", \"$1\", \"instance\", \"(.*):.*\"\n      )\n    )\n  ) * 100\n)\n",
           "legendFormat": "{{server}} | {{groupname}} | {{ip}}",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "refId": "A"
         }
       ],
       "title": "Multi Host CPU Process ",
@@ -1689,15 +1689,15 @@
       "pluginVersion": "12.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "editorMode": "code",
           "expr": "(\n  1 -\n  (\n    node_memory_MemAvailable_bytes\n    /\n    node_memory_MemTotal_bytes\n  )\n) * 100\n",
           "legendFormat": "{{server}} | {{instance}}",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "refId": "A"
         },
         {
           "datasource": {
@@ -1801,16 +1801,16 @@
       "pluginVersion": "12.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "editorMode": "code",
           "expr": "topk(\n  10,\n  (\n    sum by (groupname, ip) (\n      label_replace(\n        namedprocess_namegroup_memory_bytes,\n        \"ip\", \"$1\", \"instance\", \"(.*):.*\"\n      )\n    )\n    /\n    on(ip)\n    group_left\n    sum by (ip) (\n      label_replace(\n        node_memory_MemTotal_bytes,\n        \"ip\", \"$1\", \"instance\", \"(.*):.*\"\n      )\n    )\n  ) * 100\n)\n",
           "hide": true,
           "legendFormat": "{{label_name}}",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "refId": "A"
         },
         {
           "datasource": {
@@ -3263,15 +3263,15 @@
       "pluginVersion": "12.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "editorMode": "code",
           "expr": "topk(\n  10,\n  (\n    sum by (server, container_label_com_docker_compose_service) (\n      rate(container_cpu_usage_seconds_total{\n        container_label_com_docker_compose_service!=\"\"\n      }[5m])\n    )\n    *\n    on(server)\n    group_left(ip)\n    label_replace(\n      node_uname_info,\n      \"ip\", \"$1\", \"instance\", \"(.*):.*\"\n    )\n  )\n)\n",
           "legendFormat": "{{server}} | {{container_label_com_docker_compose_service}} | {{ip}}",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "refId": "A"
         }
       ],
       "title": "Multi Host CPU Usage Docker Container",
@@ -3362,15 +3362,15 @@
       "pluginVersion": "12.3.0",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "editorMode": "code",
           "expr": "topk(\n  10,\n  (\n    sum by (server, container_label_com_docker_compose_service) (\n      container_memory_working_set_bytes{\n        container_label_com_docker_compose_service!=\"\"\n      }\n    )\n    *\n    on(server)\n    group_left(ip)\n    label_replace(\n      node_uname_info,\n      \"ip\", \"$1\", \"instance\", \"(.*):.*\"\n    )\n  )\n)\n",
           "legendFormat": "{{server}} | {{container_label_com_docker_compose_service}} | {{ip}}",
           "range": true,
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_PROMETHEUS}"
-          }
+          "refId": "A"
         }
       ],
       "title": "Multi Host Memory Docker Container",
@@ -4515,7 +4515,7 @@
     }
   ],
   "preload": false,
-  "refresh": "5s",
+  "refresh": "30m",
   "schemaVersion": 42,
   "tags": [
     "prometheus",
@@ -4649,13 +4649,13 @@
     ]
   },
   "time": {
-    "from": "now-3h",
+    "from": "now-5m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "Server-Monitoringtest",
   "uid": "server-monitoring-dashboard-seamolectest",
-  "version": 12,
+  "version": 2,
   "weekStart": ""
 }

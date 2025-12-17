@@ -1,4 +1,4 @@
-#!/bin/bash
+\#!/bin/bash
 
 set -e
 
@@ -198,7 +198,7 @@ install_promtail() {
   VERSION="3.1.1"
   FILE="promtail-linux-${ARCH_DL}.zip"
 
-  wget --show-progress https://github.com/grafana/loki/release/download/v${VERSION}/${FILE}
+  wget --show-progress https://github.com/grafana/loki/releases/download/v${VERSION}/${FILE}
   unzip --show-progress $FILE
   mv promtail-linux-${ARCH_DL} /usr/local/bin/promtail
   rm $FILE

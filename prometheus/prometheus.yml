@@ -1,50 +1,158 @@
 global:
   scrape_interval: 15s
-
+  evaluation_interval: 15s
+  external_labels:
+    cluster: monitoring-prod
+    replica: prometheus-1
 rule_files:
-  - "alert_rules.yml"
+  - /etc/prometheus/alert_rules.yml
 
 alerting:
   alertmanagers:
     - static_configs:
-        - targets: ['alertmanager:9093']
+        - targets: ['10.100.0.1:9093']
 
 scrape_configs:
   - job_name: "prometheus"
     static_configs:
-        - targets: ["prometheus:9090"]
+        - targets: ["10.100.0.1:9090"]
 
-  - job_name: "process-exporter"
+#monitoring process
+  - job_name: "process-exporter-target"
+    scrape_interval: 5s
     static_configs:
       - targets:
-        -  "192.168.51.174:9256" #"192.168.1.36:9256"
-        -  "192.168.50.199:9256"
+        -  "10.100.0.3:9256" #"192.168.1.36:9256"
+        #-  "192.168.50.199:9256"
+        labels:
+          server: "Debian-Laptop"
 #server monitoring 
-  - job_name: "Monitoring Server"
+  - job_name: "node-debian"
     static_configs:
-        - targets:  ["192.168.51.174:9100"] #["192.168.1.36:9100"]  
-          labels:
-            server_role: "monitoring"
-            environment: "production"
-            server: "Server Utama"
+      - targets:  ["10.100.0.3:9100"] #["192.168.1.36:9100"]  
+        labels:
+          server_role: "target test"
+          environment: "development"
+          server: "Debian-Laptop"
+  - job_name: "node ec2-grafana"
+    static_configs:
+      - targets: ["10.100.0.2:9100"]
+        labels:
+          server_role: "target ec2grafana"
+          environment: "production"
+          server: "EC2-Grafana"
+  - job_name: "node ec2-prometheus"
+    static_configs:
+      - targets: ["10.100.0.1:9100"]
+        labels:
+          server_role: "target ec2prometheus"
+          environment: "production"
+          server: "EC2-Prometheus"
+  - job_name: "cadvisor-debian"
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["10.100.0.3:8080"]
+        labels:
+          server: "Debian-Laptop"
+  - job_name: "cadvisor-ec2-prometheus"
+    scrape_interval: 5s
+    static_configs:
+      - targets: ["10.100.0.1:8080"]
+        labels:
+          server: "EC2-Prometheus"
 
-  - job_name: "Monitored Server"  #Nama Grup
+  - job_name: "blackbox-http"
+    metrics_path: /probe
+    params:
+       module: [http_2xx]
     static_configs:
-      - targets: ["192.168.50.199:9100", "192.168.50.112:9100"]  #Alamat IP server yang dimonito
-        labels: 
-            server_role: "worker"
-            environment: "production"
-            server: "Server Backup"
-####
-  - job_name: 'uptime-kuma'
-    scrape_interval: 30s
-    scheme: http
-    metrics_path: '/metrics'
+      - targets:
+          - "https://seamolec.org/"
+          - "https://maganghub.kemnaker.go.id"
+          - "https://siapkerja.kemnaker.go.id/app/home"
+        #labels:
+         # vlan: "internet"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: "10.100.0.1:9115"
+
+  - job_name: "blackbox-vlan"
+    metrics_path: /probe
+    params:
+       module: [ping]
     static_configs:
-      - targets: ['uptime-kuma:3001']
-    basic_auth:
-      username: admin #
-      password: seadmin1  # 
+      # Contoh gateway IP per VLAN — ganti sesuai lingkungan Anda
+      - targets:
+          - "192.168.10.1"
+        labels:
+          vlan: "VLAN_10"
+          location: "LAN LANTAI 1"
+          probe_type: "ping"
+      - targets:
+          - "192.168.20.1"
+        labels:
+          vlan: "VLAN_20" 
+          location: "LAN LANTAI 2"
+          probe_type: "ping"
+      - targets:
+          - "192.168.30.20"
+        labels:
+          vlan: "VLAN_30"
+          location: "LAN LANTAI 3"
+          probe_type: "ping"
+      - targets:
+          - "192.168.40.20"
+        labels:
+          vlan: "VLAN_40"
+          location: "LAN RUANG IT"
+          probe_type: "ping"
+      - targets:
+          - "192.168.50.1"
+        labels:
+          vlan: "VLAN_50"
+          location: "WLAN"
+          probe_type: "ping"
+      - targets:
+          - "192.168.15.1"
+        labels:
+          vlan: "WLAN/LAN"
+          location: "Ruang Kelas Lt1 dan 2"
+          probe_type: "ping"
+      - targets: 
+          - "192.168.25.1"
+        labels:
+          vlan: "VLAN25"
+          location: "RUANG LAB KOMPUTER"
+          probe_type: "ping"
+      - targets:
+          - "192.168.35.1" 
+        labels:
+          vlan: "VLAN35"
+          location: "RUANG ODL HUB"
+          probe_type: "ping"
+      - targets:
+          - "118.98.214.129"
+        labels:
+          vlan: "VLAN_100"
+          location: "VLAN PUSDATIN"
+          probe_type: "ping"
+      - targets:
+          - "192.168.99.1"
+        labels:
+          vlan: "VLAN99"
+          location: "MANAGEMENT VLAN"
+          probe_type: "ping"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: "10.100.0.1:9115"
 
 
   - job_name: 'snmp'
@@ -69,116 +177,3 @@ scrape_configs:
   - job_name: 'snmp_exporter'
     static_configs:
       - targets: ['snmp_exporter:9116']
-  
-  - job_name: 'speedtest_exporter'
-    scrape_interval: 1h
-    scrape_timeout: 1m
-    static_configs:
-      - targets: ['speedtest-exporter:9798']
-  
-  - job_name: "blackbox-http"
-    metrics_path: /probe
-    params:
-       module: [http_2xx]
-    static_configs:
-      - targets:
-          - "https://seamolec.org/"
-          - "https://maganghub.kemnaker.go.id"
-          - "https://siapkerja.kemnaker.go.id/app/home"
-        #labels:
-         # vlan: "internet"
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
-      - source_labels: [__param_target]
-        target_label: instance
-      - target_label: __address__
-        replacement: "blackbox-exporter:9115"
-
-  - job_name: "blackbox-vlan"
-    metrics_path: /probe
-    params:
-       module: [ping]
-    static_configs:
-      # Contoh gateway IP per VLAN — ganti sesuai lingkungan Anda
-      - targets:
-          - "192.168.10.0"
-        labels:
-          vlan: "VLAN_10"
-          location: "LAN LANTAI 1"
-          probe_type: "ping"
-      - targets:
-          - "192.168.20.0"
-        labels:
-          vlan: "VLAN_20" 
-          location: "LAN LANTAI 2"
-          probe_type: "ping"
-      - targets:
-          - "192.168.30.20"
-        labels:
-          vlan: "VLAN_30"
-          location: "LAN LANTAI 3"
-          probe_type: "ping"
-      - targets:
-          - "192.168.40.20"
-        labels:
-          vlan: "VLAN_40"
-          location: "LAN RUANG IT"
-          probe_type: "ping"
-      - targets:
-          - "192.168.50.0"
-        labels:
-          vlan: "VLAN_50"
-          location: "WLAN"
-          probe_type: "ping"
-      - targets:
-          - "192.168.15.0"
-        labels:
-          vlan: "WLAN/LAN"
-          location: "Ruang Kelas Lt1 dan 2"
-          probe_type: "ping"
-      - targets: 
-          - "192.168.25.0"
-        labels:
-          vlan: "VLAN25"
-          location: "RUANG LAB KOMPUTER"
-          probe_type: "ping"
-      - targets:
-          - "192.168.35.0" 
-        labels:
-          vlan: "VLAN35"
-          location: "RUANG ODL HUB"
-          probe_type: "ping"
-      - targets:
-          - "118.98.214.129"
-        labels:
-          vlan: "VLAN_100"
-          location: "VLAN PUSDATIN"
-          probe_type: "ping"
-      - targets:
-          - "192.168.99.0"
-        labels:
-          vlan: "VLAN99"
-          location: "MANAGEMENT VLAN"
-          probe_type: "ping"
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
-      - source_labels: [__param_target]
-        target_label: instance
-      - target_label: __address__
-        replacement: "blackbox-exporter:9115"
-  - job_name: cadvisor
-    scrape_interval: 5s
-    static_configs:
-      - targets:
-          - "192.168.51.174:8080"
-        labels:
-          server: "Server Utama"
-
-      - targets:
-          - "192.168.50.199:8080"
-        labels:
-          server: "Server Backup"
-
-

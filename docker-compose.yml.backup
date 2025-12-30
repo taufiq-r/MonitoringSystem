@@ -1,0 +1,191 @@
+services:
+
+  grafana:
+    image: "grafana/grafana:latest"
+    container_name: "grafana"
+    restart: "unless-stopped"
+    ports:
+      - "3000:3000"
+    volumes:
+      - "grafana:/var/lib/grafana"
+      - "$PWD/grafana/grafana.ini:/etc/grafana/grafana.ini"
+    depends_on:
+      - cadvisor
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    privileged: true
+    restart: always
+    ports:
+      - 8080:8080
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    devices:
+      - /dev/kmsg
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - 6379:6379
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  prometheus:
+    image: "prom/prometheus:latest"
+    container_name: "prometheus"
+    restart: "unless-stopped"
+    privileged: true
+    ports:
+      - "9090:9090"
+    volumes:
+      - "$PWD/prometheus:/etc/prometheus"
+      - "prometheus:/prometheus"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  blackbox_exporter:
+    image: "quay.io/prometheus/blackbox-exporter:latest"
+    container_name: "blackbox-exporter"
+    privileged: true
+    restart: "unless-stopped"
+    cap_add:
+      - NET_RAW
+    ports:
+      - "9115:9115"
+    volumes:
+      - "./blackbox:/config"
+    command:
+      - "--config.file=/config/blackbox.yml"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+  alertmanager:
+    image: "prom/alertmanager:latest"
+    container_name: "alertmanager"
+    restart: "unless-stopped"
+    privileged: true
+    ports:
+      - "9093:9093"
+    volumes:
+      - "$PWD/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml"
+      - "alertmanager:/alertmanager"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:2
+    container_name: uptime-kuma
+    restart: always
+    ports:
+      - '3001:3001'
+    volumes:
+      - './data:/app/data'
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  loki:
+    image: grafana/loki:2.9.3
+    container_name: loki
+    privileged: true
+    restart: unless-stopped
+    ports:
+      - '3100:3100'
+    command: -config.file=/etc/loki/loki-config.yaml
+    volumes:
+      - ./loki:/etc/loki
+      - loki:/tmp
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  promtail:
+    image: grafana/promtail:2.9.3
+    container_name: promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    volumes:
+      - ./promtail:/etc/promtail
+      - /var/log:/var/log
+      - /var/log/journal:/var/log/journal:ro
+      - /run/log/journal:/run/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      #- ./promtail/promtail-config.yaml:/etc/promtail/promtail.yaml
+    privileged: true
+    user: root
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+  incident-webhook:
+    build: ./incident-webhook
+    container_name: incident-webhook
+    restart: unless-stopped
+    ports:
+      - '5000:5000'
+    environment:
+      - DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/1443805759514083461/ihM2neSs6gYk97Ni6AhvVBtG8Mw7HkQs9QVob5q9h_fxNAyz2FJJa3RPpRh_ed-4ST70
+    volumes:
+      - ./var/log:/var/log
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
+
+volumes:
+  grafana: {}
+  prometheus: {}
+  alertmanager: {}
+  uptime-kuma-storage: {}
+  loki: {}
+  promtail: {}

@@ -6,54 +6,31 @@ positions:
   filename: /tmp/positions.yaml
 
 clients:
-  - url: http://loki:3100/loki/api/v1/push
+  - url: http://10.100.0.1:3100/loki/api/v1/push
 
 scrape_configs:
-  # System logs
   - job_name: system
     static_configs:
-      - targets:
-          - localhost
+      - targets: [localhost]
         labels:
           job: varlogs
-          host: monitoring
+          host: ec2-prometheus
           __path__: /var/log/*.log
 
-  # Systemd journal logs
-  - job_name: systemd-journal
-    journal:
-      json: false
-      max_age: 12h
-      path: /var/log/journal
-      labels:
-        job: systemd-journal
-        host: monitoring
-    relabel_configs:
-      - source_labels: ['__journal__systemd_unit']
-        target_label: 'unit'
-      - source_labels: ['__journal__hostname']
-        target_label: 'hostname'
-      - source_labels: ['__journal_priority_keyword']
-        target_label: 'level'
-
-  # Docker container logs (json-file)
   - job_name: docker-container
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
 
     relabel_configs:
-    # Ambil container name
       - source_labels: ['__meta_docker_container_name']
         target_label: container
         regex: '/(.*)'
         replacement: '$1'
 
-    # Ambil image
       - source_labels: ['__meta_docker_container_image']
         target_label: image
 
-    # Mapping path log container
       - source_labels: ['__meta_docker_container_id']
         target_label: __path__
         replacement: /var/lib/docker/containers/$1/*-json.log
@@ -62,25 +39,7 @@ scrape_configs:
         replacement: docker-container
 
       - target_label: host
-        replacement: monitoring
+        replacement: ec2-prometheus
 
     pipeline_stages:
       - docker: {}
-
-
-
-
-
-
-
-      #docker_sd_configs:
-      #- host: unix:///var/run/docker.sock
-        #refresh_interval: 5s
-    #relabel_configs:
-      #- source_labels: ['__meta_docker_container_name']
-        #regex: '/(.*)'
-        #target_label: 'container'
-      #- source_labels: ['__meta_docker_container_log_stream']
-        #target_label: 'logstream'
-      #- source_labels: ['__meta_docker_container_id']
-        #target_label: 'container_id'

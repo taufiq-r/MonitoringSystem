@@ -155,25 +155,48 @@ scrape_configs:
         replacement: "10.100.0.1:9115"
 
 
-  - job_name: 'snmp'
+  - job_name: 'snmp-mikrotik-interfaces'
+    scrape_interval: 30s
+    scrape_timeout: 30s
     static_configs:
       - targets:
-        - 192.168.20.130  # IP SNMP device.
+        - 10.100.0.5  # IP SNMP device.
         #- switch.local # SNMP device.
         #- tcp://192.168.1.3:1161  # SNMP device using TCP transport and custom port.
     metrics_path: /snmp
     params:
       auth: [public_v2]
-      module: [routeros]
+      module: [mikrotik_interfaces]
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
       - source_labels: [__param_target]
         target_label: instance
       - target_label: __address__
-        replacement: 192.168.50.210:9116  # The SNMP exporter's real hostname:port.
+        replacement: 10.100.0.1:9116  # The SNMP exporter's real hostname:port.
 
-  # Global exporter-level metrics
-  - job_name: 'snmp_exporter'
+  - job_name: 'snmp-mikrotik-system'
+    scrape_interval: 60s
+    scrape_timeout: 30s
+    metrics_path: /snmp
+    params:
+      auth: [public_v2]
+      module: [mikrotik_system]
     static_configs:
-      - targets: ['snmp_exporter:9116']
+      - targets:
+          - 10.100.0.5
+        #labels:
+        #device: mikrotik-core
+        #site: hq
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 10.100.0.1:9116
+
+ # Global exporter-level metrics
+  #- job_name: 'snmp_exporter'
+    #static_configs:
+      #- targets: ['snmp_exporter:9116']

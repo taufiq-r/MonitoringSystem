@@ -99,7 +99,7 @@ services:
     ports:
       - "5000:5000"
     env_file:
-      - .env
+      - ./ec2-prometheus/.env
     deploy:
       resources:
         limits:
